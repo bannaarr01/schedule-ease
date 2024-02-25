@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0.7
+    env_file:
+      - ./keycloak.env
+    ports:
+      - "8080:8080"
+    command: ["start-dev"]
+
+  mariadb:
+    image: mariadb:11.3.2
+    container_name: mariadb
+    restart: unless-stopped
+    env_file:
+      - ./mariadb.env
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb-data:/var/lib/mysql
+
+volumes:
+  mariadb-data:
+    driver: local
