@@ -2,7 +2,10 @@
 /dist
 /node_modules
 .idea
-
+keycloak.env
+mariadb.env
+temp
+.env
 # Logs
 logs
 *.log
