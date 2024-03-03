@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   keycloak:
-    image: quay.io/keycloak/keycloak:23.0.7
+    image: quay.io/keycloak/keycloak:23.0
     env_file:
       - ./keycloak.env
     ports:
@@ -19,6 +19,21 @@ services:
       - "3306:3306"
     volumes:
       - mariadb-data:/var/lib/mysql
+
+  schedule-ease-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    depends_on:
+      - mariadb
+      - keycloak
+#    volumes:
+#      - type: bind
+#        source: .
+#        target: /app #reflect changes for dev purpose
+#        consistency: cached
 
 volumes:
   mariadb-data:

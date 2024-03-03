@@ -1,6 +1,7 @@
 import { TsMorphMetadataProvider } from '@mikro-orm/reflection';
 import { Logger } from '@nestjs/common';
 import { defineConfig } from '@mikro-orm/mysql'
+import { Migrator, TSMigrationGenerator } from '@mikro-orm/migrations';
 
 const logger = new Logger('MikroORM');
 
@@ -24,6 +25,7 @@ export default defineConfig({
    debug: true,                             // Enable debug mode
    entities: ['./dist/**/*.entity.js'],     // File paths for entity definitions (compiled)
    entitiesTs: ['src/**/*.entity.ts'],      // File paths for entity definitions (source)
+   extensions: [Migrator],
    migrations: {
       path: 'dist/migrations',             // Path to the migration files (compiled)
       pathTs: 'src/migrations',            // Path to the migration files (source)
@@ -36,5 +38,6 @@ export default defineConfig({
       safe: false,                         // Whether to perform safe migrations (dry-run)
       snapshot: true,                      // Whether to create a snapshot of the database before migration
       emit: 'ts',                          // Language to emit (js or ts)
+      generator: TSMigrationGenerator, // migration generator, e.g. to allow custom formatting
    },
 });

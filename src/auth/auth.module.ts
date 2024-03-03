@@ -6,11 +6,18 @@
  * This module can also be extended/enhance to use multi-authentication other than keycloak
  */
 import * as dotenv from 'dotenv';
-dotenv.config();
-
 import { APP_GUARD } from '@nestjs/core';
 import { CanActivate, DynamicModule, Module, Type } from '@nestjs/common';
-import { KeycloakConnectModule, TokenValidation, AuthGuard, ResourceGuard, RoleGuard } from 'nest-keycloak-connect';
+import {
+   AuthGuard,
+   KeycloakConnectModule,
+   ResourceGuard,
+   RoleGuard,
+   TokenValidation
+} from 'nest-keycloak-connect';
+import * as process from 'process';
+
+dotenv.config();
 
 // type for Guard classes
 type GuardType = Type<CanActivate>;
@@ -44,10 +51,11 @@ export class AuthModule {
             authServerUrl: `${process.env.KEYCLOAK_BASE_URL}`,
             realm: process.env.KEYCLOAK_REALM,
             clientId: process.env.KEYCLOAK_CLIENTID,
+            resource: `${process.env.KEYCLOAK_CLIENTID}`,
             bearerOnly: true,
-            public: true,
+            public: false,
             realmPublicKey: process.env.KEYCLOAK_PUBLIC_KEY,
-            secret: '',
+            secret: process.env.KEYCLOAK_CLIENT_SECRET,
             tokenValidation: TokenValidation.OFFLINE,
             logLevels: ['error']
          }),
