@@ -10,6 +10,7 @@ export class KeycloakService {
    private readonly baseURL: string;
    private readonly keycloakRealm: string;
    private readonly clientID: string;
+   private readonly clientSecret: string;
 
    /**
     * Initializes KeycloakService with HTTP service dependency.
@@ -19,6 +20,7 @@ export class KeycloakService {
       this.baseURL = process.env.KEYCLOAK_BASE_URL;
       this.keycloakRealm = process.env.KEYCLOAK_REALM;
       this.clientID = process.env.KEYCLOAK_CLIENT_ID;
+      this.clientSecret = process.env.KEYCLOAK_CLIENT_SECRET;
    }
 
    /**
@@ -39,6 +41,7 @@ export class KeycloakService {
             data: qs.stringify({
                grant_type: 'password',
                client_id: this.clientID,
+               client_secret: this.clientSecret,
                username: credential.username,
                password: credential.password
             }),
