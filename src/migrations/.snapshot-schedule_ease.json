@@ -198,13 +198,22 @@
           "nullable": false,
           "mappedType": "integer"
         },
-        "content": {
-          "name": "content",
+        "uploaded_by_id": {
+          "name": "uploaded_by_id",
           "type": "varchar(255)",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": true,
+          "nullable": false,
+          "mappedType": "string"
+        },
+        "uploaded_by_name": {
+          "name": "uploaded_by_name",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
           "mappedType": "string"
         },
         "description": {
