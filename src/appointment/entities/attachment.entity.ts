@@ -25,7 +25,10 @@ export class Attachment {
      size: number;
 
   @Property()
-     content?: string;
+     uploadedById: string;
+
+  @Property()
+     uploadedByName: string;
 
   @Property()
      description?: string;
@@ -33,23 +36,4 @@ export class Attachment {
   @Property({ onCreate: () => new Date()})
      uploadedAt = new Date();
 
-  constructor(
-     appointmentId: Appointment,
-     attachmentType: string,
-     originalName: string,
-     mimeType: string,
-     path: string,
-     size: number,
-     content:string,
-     description: string
-  ) {
-     this.appointmentId = appointmentId;
-     this.attachmentType = attachmentType;
-     this.originalName = originalName;
-     this.mimeType = mimeType;
-     this.path = path;
-     this.size = size;
-     this.content = content;
-     this.description = description;
-  }
 }
