@@ -1,19 +1,54 @@
-import { Cascade, Entity, ManyToOne, OneToOne, PrimaryKey, Property } from '@mikro-orm/core';
-import { ContactMediumType } from '../contact-medium-type';
+import { BeforeCreate, BeforeUpdate, Entity, OneToOne, PrimaryKey, Property } from '@mikro-orm/core';
+import { ContactMediumType } from '../enums/contact-medium-type';
 import { ContactMediumAttribute } from './contact-mendium-attriibute.entity';
-import { Appointment } from './appointment.entity';
+import { Participant } from './participant.entity';
+import { ErrorUtil } from '../../utils/error.util';
+import { HttpStatus } from '@nestjs/common';
 
 @Entity()
 export class ContactMedium {
   @PrimaryKey()
      id: number;
 
-  @ManyToOne(()=> Appointment, {fieldName: 'appointment_id', cascade: [Cascade.PERSIST], eager: true } )
-     appointmentId: Appointment;
-  
+  @OneToOne(() => ContactMediumAttribute, attribute => attribute.contactMediumId, { owner: true })
+     attribute: ContactMediumAttribute;
+
+  @OneToOne(()=> Participant, participant => participant.contactMedium )
+     participantId: Participant;
+
   @Property()
      mediumType?: ContactMediumType;
 
-  @OneToOne(() => ContactMediumAttribute, attribute => attribute.contactMediumId, { owner: true })
-     attribute?: ContactMediumAttribute;
+  @BeforeCreate()
+  @BeforeUpdate()
+  async updateMediumType() {
+     switch (true) {
+     case !!this.attribute.phoneNumber && !!this.attribute.email && !!this.attribute.city:
+        this.mediumType = ContactMediumType.EMAIL_PHONE_NUMBER_ADDRESS;
+        break;
+     case !!this.attribute.phoneNumber && !!this.attribute.email:
+        this.mediumType = ContactMediumType.EMAIL_PHONE_NUMBER;
+        break;
+     case !!this.attribute.phoneNumber && !!this.attribute.city:
+        this.mediumType = ContactMediumType.PHONE_NUMBER_ADDRESS;
+        break;
+     case !!this.attribute.email && !!this.attribute.city:
+        this.mediumType = ContactMediumType.EMAIL_ADDRESS;
+        break;
+     case !!this.attribute.phoneNumber:
+        this.mediumType = ContactMediumType.PHONE_NUMBER;
+        break;
+     case !!this.attribute.email:
+        this.mediumType = ContactMediumType.EMAIL;
+        break;
+     case !!this.attribute.city:
+        this.mediumType = ContactMediumType.ADDRESS;
+        break;
+     default:
+        ErrorUtil.throwError('Either phoneNumber or email is required.',
+           HttpStatus.UNPROCESSABLE_ENTITY);
+        break;
+     }
+  }
+
 }

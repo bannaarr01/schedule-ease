@@ -6,10 +6,6 @@ export class UploadAttachmentDto {
      file: any;
 
   @IsString()
-  @ApiProperty()
-     appointmentId: string;
-
-  @IsString()
   @ApiPropertyOptional()
      description?: string;
 }

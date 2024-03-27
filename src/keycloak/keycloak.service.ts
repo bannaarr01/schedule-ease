@@ -1,5 +1,5 @@
 import * as qs from 'qs';
-import { ErrorUtil } from '../utils/utils';
+import { ErrorUtil } from '../utils/error.util';
 import { HttpService } from '@nestjs/axios';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { AuthTokenRequestDto } from './dto/auth-token-request.dto';

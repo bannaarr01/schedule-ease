@@ -4,7 +4,7 @@ import { AuthTokenRequestDto } from './dto/auth-token-request.dto';
 import { Public } from 'nest-keycloak-connect';
 import { LoggerService } from '../logger/logger.service';
 import { IAuthToken } from './interface/auth-token.interface';
-import { ApiOperationAndResponses } from '../utils/utils';
+import { ApiOperationAndResponses } from '../utils/api.util';
 import { ApiTags } from '@nestjs/swagger';
 
 @Controller('auth')

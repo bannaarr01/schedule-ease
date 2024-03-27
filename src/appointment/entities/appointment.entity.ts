@@ -1,12 +1,25 @@
-import { Cascade, Collection, Entity, OneToMany, PrimaryKey, Property } from '@mikro-orm/core';
-import { RelatedParty } from './related-party.entity';
-import { Location } from './location.entity';
-import { AppointmentStatus } from '../appointment-status';
-import { Attachment } from './attachment.entity';
-import { ContactMedium } from './contact-medium.entity';
+import {
+   Enum,
+   Entity,
+   Cascade,
+   OneToOne,
+   Property,
+   OneToMany,
+   ManyToOne,
+   PrimaryKey,
+   Collection,
+   BeforeUpdate,
+   BeforeCreate,
+} from '@mikro-orm/core';
+import { HttpStatus } from '@nestjs/common';
+import { AppointmentStatus } from './appointment-status.entity';
 import { CalendarEvent } from './calendar-event.entity';
+import { LocationType } from '../enums/location-type';
+import { ErrorUtil } from '../../utils/error.util';
+import { Participant } from './participant.entity';
+import { Attachment } from './attachment.entity';
+import { Location } from './location.entity';
 import { Note } from './note.entity';
-import { LocationType } from './location-type';
 
 @Entity()
 export class Appointment {
@@ -31,39 +44,47 @@ export class Appointment {
   @Property()
      validForEndDateTime: Date;
 
-  @Property({ onCreate: () => AppointmentStatus.CREATED })
+  @ManyToOne(() => AppointmentStatus,{ cascade: [Cascade.PERSIST, Cascade.REMOVE], eager: false, deleteRule: 'cascade' })
      status: AppointmentStatus;
 
   @Property({ onCreate: () => new Date() })
      createdAt: Date;
 
+  @Property({ nullable: true })
+     updatedBy?: string;
+
   @Property({ onCreate: () => new Date(), onUpdate: () => new Date() })
      updatedAt: Date;
 
-  @Property()
-     locationType?: LocationType;
+  @Enum(() => LocationType)
+     locationType: LocationType;
 
   @Property()
      locationLink?: string;
 
-  @OneToMany(() => Location, location => location.appointmentId,{ cascade: [Cascade.PERSIST], eager: false })
-     location? = new Collection<Location>(this);
-  
-  @OneToMany(() => RelatedParty, relatedParty => relatedParty.appointmentId,
+  @OneToMany(() => Participant, participant => participant.appointmentId,
      { cascade: [Cascade.PERSIST], eager: false })
-     relatedParty? = new Collection<RelatedParty>(this);
+     participant = new Collection<Participant>(this);
+
+  @OneToOne(() => Location, location => location.appointmentId, { owner: true } )
+     location: Location;
 
   @OneToMany(() => Attachment, attachment => attachment.appointmentId, { cascade: [Cascade.PERSIST], eager: false })
      attachment? = new Collection<Attachment>(this);
 
-  @OneToMany(() => CalendarEvent, calendarEvent => calendarEvent.appointmentId, 
+  @OneToMany(() => CalendarEvent, calendarEvent => calendarEvent.appointmentId,
      { cascade: [Cascade.PERSIST], eager: false })
      calendarEvent? = new Collection<CalendarEvent>(this);
-  
-  @OneToMany(() => ContactMedium, contactMedium => contactMedium.appointmentId, 
-     { cascade: [Cascade.PERSIST], eager: false })
-     contactMedium? = new Collection<ContactMedium>(this);
 
   @OneToMany(() => Note, note => note.appointmentId,{ cascade: [Cascade.PERSIST], eager: false })
      note? = new Collection<Note>(this);
+
+  @BeforeCreate()
+  @BeforeUpdate()
+  async validateLocationLink() {
+     if (this.locationType === LocationType.ONLINE && !this.locationLink) {
+        ErrorUtil.throwError('Location or meeting link is required for online appointments.',
+           HttpStatus.UNPROCESSABLE_ENTITY);
+     }
+  }
 }

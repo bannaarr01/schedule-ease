@@ -1,4 +1,4 @@
-import { Cascade, Entity, ManyToOne, PrimaryKey, Property } from '@mikro-orm/core';
+import { Entity, OneToOne, PrimaryKey, Property } from '@mikro-orm/core';
 import { Appointment } from './appointment.entity';
 
 @Entity()
@@ -6,27 +6,27 @@ export class Location {
   @PrimaryKey()
      id!: number;
 
-  @ManyToOne(()=> Appointment, {fieldName: 'appointment_id', cascade: [Cascade.PERSIST], eager: true } )
+  @OneToOne(()=> Appointment, appointment => appointment.location)
      appointmentId: Appointment;
 
   @Property()
      name: string;
 
   @Property()
-     streetNr: string;
+     streetNr?: string;
 
   @Property()
-     streetName: string;
+     streetName?: string;
 
   @Property()
-     postCode: string;
+     postCode?: string;
 
   @Property()
-     city: string;
+     city?: string;
 
   @Property()
-     stateOrProvince: string;
+     stateOrProvince?: string;
 
   @Property()
-     country: string;
+     country?: string;
 }
