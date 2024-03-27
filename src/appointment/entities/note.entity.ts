@@ -7,13 +7,13 @@ export class Note {
      id!: number;
   
   @ManyToOne(()=> Appointment, {fieldName: 'appointment_id', cascade: [Cascade.PERSIST], eager: true } )
-     appointmentId?: Appointment
+     appointmentId: Appointment
   
   @Property()
-     author?: string;
+     author: string;
 
-  @Property()
-     text?: string;
+  @Property({ length: 1000 })
+     text: string;
 
   @Property({ onCreate: () => new Date() })
      createdAt: Date;

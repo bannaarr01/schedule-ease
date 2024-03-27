@@ -8,6 +8,8 @@ import { AppointmentModule } from './appointment/appointment.module';
 import { LoggerService } from './logger/logger.service';
 import { DbMigrationService } from './db-migration/db-migration.service';
 import { DbMigrationModule } from './db-migration/db-migration.module';
+import { SeedService } from './seed/seed.service';
+import { SeedModule } from './seed/seed.module';
 
 @Module({
    imports: [
@@ -15,9 +17,10 @@ import { DbMigrationModule } from './db-migration/db-migration.module';
       AuthModule.forRoot(),
       KeycloakModule,
       AppointmentModule,
-      DbMigrationModule
+      DbMigrationModule,
+      SeedModule
    ],
    controllers: [AppController],
-   providers: [AppService, LoggerService, DbMigrationService],
+   providers: [AppService, LoggerService, DbMigrationService, SeedService],
 })
 export class AppModule {}
