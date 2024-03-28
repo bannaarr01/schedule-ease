@@ -20,7 +20,11 @@ RUN mkdir -p /app/logs \
     && mkdir -p /app/logs/applications \
     && mkdir -p /app/logs/exceptions \
     && mkdir -p /app/logs/errors \
-    && chmod -R 777 /app/logs
+    && chmod -R 777 /app/logs \
+    && mkdir -p /app/data \
+    && mkdir -p /app/data/appointment-attachment \
+    && chmod -R 777 /app/data/appointment-attachment \
+    && chmod -R 777 /app/data
 
 ENV SERVER_PORT_NUMBER 8501
 ENV NODE_ENV development
