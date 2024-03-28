@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, promises as fsPromises } from 'fs';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/mysql';
-import * as moment from 'moment';
+import moment from 'moment';
 import * as path from 'path';
 import { CreateAppointmentDto } from './dtos/create-appointment.dto';
 import { CreateAttachmentDto } from './dtos/create-attachment.dto';
@@ -82,7 +82,7 @@ export class AppointmentService {
                   LogEntry,
                   new LogEntry(
                      newAppointment.id,
-                     'Appointment',
+                     'appointment',
                      LogAction.CREATE,
                      null,
                      JSON.stringify(serializedAppointment),
@@ -112,7 +112,7 @@ export class AppointmentService {
     * @returns {Promise<boolean>} - A Promise that resolves to true if there is a conflict, otherwise resolves to false.
     * @throws {Error} - Throws an error if there is an issue checking for conflicts.
     */
-   private async isAppointmentConflict(appointmentDto: CreateAppointmentDto): Promise<boolean> {
+   public async isAppointmentConflict(appointmentDto: CreateAppointmentDto): Promise<boolean> {
       try {
          // Extract participant contact information
          const participantContactAttribute = appointmentDto.participant.map(p => p.contactMedium.attribute);
@@ -160,7 +160,7 @@ export class AppointmentService {
     * @param {Date} endDate - The end date and time of the appointment.
     * @throws {Error} - Throws an error if the appointment start or end time is invalid.
     */
-   private validateAppointmentTime(startDate: Date, endDate: Date): void {
+  public validateAppointmentTime(startDate: Date, endDate: Date): void {
       // Get current time
       const now = moment();
 
@@ -179,7 +179,7 @@ export class AppointmentService {
 
       // Ensure appointment duration is at least the set minimum Appointment Time Frame in minutes
       if (diffInMinutes < this.minAppointmentTimeInMins) {
-         ErrorUtil.throwError('Appointment Schedule must be at least 10 minutes', HttpStatus.BAD_REQUEST);
+         ErrorUtil.throwError(`Appointment Schedule must be at least ${this.minAppointmentTimeInMins} minutes`, HttpStatus.BAD_REQUEST);
       }
    }
 
@@ -250,7 +250,7 @@ export class AppointmentService {
             ]
          }
       );
-      if(!appointment) ErrorUtil.throwError('invalid appointment id', HttpStatus.BAD_REQUEST);
+      if(!appointment) ErrorUtil.throwError('appointment not found', HttpStatus.NOT_FOUND);
       return appointment;
    }
 
