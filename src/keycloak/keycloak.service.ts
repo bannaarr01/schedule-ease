@@ -4,6 +4,10 @@ import { HttpService } from '@nestjs/axios';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { AuthTokenRequestDto } from './dto/auth-token-request.dto';
 import { IAuthToken } from './interface/auth-token.interface';
+import { ErrorCode } from './enums/error-code';
+import { CreateUserDto } from './dto/create-user.dto';
+import { RequiredAction } from './enums/required-action';
+import { AlertStreamService } from '../alert-stream/alert-stream.service';
 
 @Injectable()
 export class KeycloakService {
@@ -16,7 +20,10 @@ export class KeycloakService {
     * Initializes KeycloakService with HTTP service dependency.
     * @param httpService for making requests.
     */
-   constructor(private httpService: HttpService){
+   constructor(
+     private httpService: HttpService,
+     private alertStreamService: AlertStreamService
+   ){
       this.baseURL = process.env.KEYCLOAK_BASE_URL;
       this.keycloakRealm = process.env.KEYCLOAK_REALM;
       this.clientID = process.env.KEYCLOAK_CLIENT_ID;
@@ -32,15 +39,11 @@ export class KeycloakService {
       try {
          const authTokenResponse = await this.httpService.axiosRef({
             baseURL: this.baseURL,
-            url: `/realms/${this.keycloakRealm}/protocol/openid-connect/token`,
+            url: `/realms/${credential.realmName}/protocol/openid-connect/token`,
             method: 'POST',
-            headers: {
-               'Accept': 'application/x-www-form-urlencoded',
-               'Content-Type': 'application/x-www-form-urlencoded'
-            },
             data: qs.stringify({
-               grant_type: 'password',
-               client_id: this.clientID,
+               grant_type: credential.grantType,
+               client_id: credential.clientId,
                client_secret: this.clientSecret,
                username: credential.username,
                password: credential.password
@@ -59,14 +62,66 @@ export class KeycloakService {
     * Otherwise, throws a generic error.
     * @param error The error object to be processed.
     */
-   private processErrorResponse(error: any): void {
-      if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+   public processErrorResponse(error: any): void {
+      if (error.code === ErrorCode.ECONNABORTED || error.code === ErrorCode.ETIMEDOUT) {
          ErrorUtil.throwError(`Connection timed out: ${error.message}`);
       } else if (error.response?.data?.error_description || error.response?.data?.error) {
          ErrorUtil.throwError(error.response?.data?.error_description
            || error.response?.data?.error, HttpStatus.UNAUTHORIZED);
       } else {
          throw new Error(error.message);
+      }
+   }
+
+   public async createAUser(accessTokenJWT: string, user: any, createUserDto: CreateUserDto) {
+      const newUserToCreate = {
+         ...createUserDto,
+         requiredActions: [ RequiredAction.UPDATE_PASSWORD ],
+         emailVerified: true,
+         enabled: true,
+         groups: [],
+      }
+
+      await this.createUserOnKeycloak(accessTokenJWT, newUserToCreate);
+
+      const [createdUser] = await this.searchUserByUsername(accessTokenJWT, createUserDto.username);
+
+      await this.alertStreamService.setupPasswordEmail(accessTokenJWT, createdUser.id);
+   }
+
+   public async createUserOnKeycloak(accessTokenJWT: string, data: any): Promise<any> {
+      try {
+         return await this.httpService.axiosRef({
+            baseURL: this.baseURL,
+            url: `admin/realms/${this.keycloakRealm}/users`,
+            method: 'POST',
+            headers: {
+               Authorization: `Bearer ${accessTokenJWT}`
+            },
+            data
+         })
+      } catch (error){
+         this.processErrorResponse(error)
+      }
+   }
+
+   public async searchUserByUsername(accessTokenJWT: string, username: string): Promise<any> {
+      try {
+         const foundUser = await this.httpService.axiosRef({
+            baseURL: this.baseURL,
+            url: `admin/realms/${this.keycloakRealm}/users`,
+            method: 'GET',
+            headers: {
+               Authorization: `Bearer ${accessTokenJWT}`
+            },
+            params: {
+               username
+            }
+         })
+
+         return foundUser.data
+      } catch (error){
+         this.processErrorResponse(error)
       }
    }
 }
