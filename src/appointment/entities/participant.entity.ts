@@ -16,6 +16,7 @@ export class Participant {
   @ManyToOne(()=> Appointment, {fieldName: 'appointment_id', cascade: [Cascade.PERSIST], eager: false } )
      appointmentId: Appointment;
 
-  @OneToOne(() => ContactMedium, contactMedium => contactMedium.participantId, { owner: true })
+  @OneToOne(() => ContactMedium, contactMedium => contactMedium.participantId,
+     { owner: true, eager: true, cascade: [Cascade.ALL] })
      contactMedium: ContactMedium;
 }
