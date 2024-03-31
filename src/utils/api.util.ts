@@ -19,7 +19,7 @@ export const ApiOperationAndResponses = ({
    // Default response descriptions for common HTTP status codes.
    const defaultResponseDescriptions = {
       [HttpStatus.OK]: 'OK',
-      [HttpStatus.CREATED]: 'Created',
+      // [HttpStatus.CREATED]: 'Created', // don't make as default for all endpoint
       [HttpStatus.BAD_REQUEST]: 'Bad request with error message.',
       [HttpStatus.UNAUTHORIZED]: 'UnAuthorized request.',
       [HttpStatus.UNPROCESSABLE_ENTITY]: 'Unprocessable entity.',

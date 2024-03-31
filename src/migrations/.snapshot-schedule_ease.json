@@ -166,7 +166,7 @@
           "unsigned": true,
           "autoincrement": false,
           "primary": false,
-          "nullable": false,
+          "nullable": true,
           "mappedType": "integer"
         },
         "medium_type": {
@@ -214,6 +214,7 @@
             "id"
           ],
           "referencedTableName": "contact_medium_attribute",
+          "deleteRule": "cascade",
           "updateRule": "cascade"
         }
       },
@@ -852,7 +853,7 @@
           "unsigned": true,
           "autoincrement": false,
           "primary": false,
-          "nullable": true,
+          "nullable": false,
           "mappedType": "integer"
         },
         "author": {
@@ -861,7 +862,7 @@
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": true,
+          "nullable": false,
           "mappedType": "string"
         },
         "text": {
@@ -870,7 +871,7 @@
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": true,
+          "nullable": false,
           "length": 1000,
           "mappedType": "string"
         },
@@ -920,7 +921,6 @@
             "id"
           ],
           "referencedTableName": "appointment",
-          "deleteRule": "set null",
           "updateRule": "cascade"
         }
       },
@@ -970,7 +970,7 @@
           "unsigned": true,
           "autoincrement": false,
           "primary": false,
-          "nullable": false,
+          "nullable": true,
           "mappedType": "integer"
         }
       },
@@ -1031,6 +1031,7 @@
             "id"
           ],
           "referencedTableName": "contact_medium",
+          "deleteRule": "cascade",
           "updateRule": "cascade"
         }
       },

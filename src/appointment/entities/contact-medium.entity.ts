@@ -1,4 +1,4 @@
-import { BeforeCreate, BeforeUpdate, Entity, OneToOne, PrimaryKey, Property } from '@mikro-orm/core';
+import { BeforeCreate, BeforeUpdate, Cascade, Entity, OneToOne, PrimaryKey, Property } from '@mikro-orm/core';
 import { ContactMediumType } from '../enums/contact-medium-type';
 import { ContactMediumAttribute } from './contact-mendium-attriibute.entity';
 import { Participant } from './participant.entity';
@@ -10,10 +10,11 @@ export class ContactMedium {
   @PrimaryKey()
      id: number;
 
-  @OneToOne(() => ContactMediumAttribute, attribute => attribute.contactMediumId, { owner: true })
+  @OneToOne(() => ContactMediumAttribute, attribute => attribute.contactMediumId,
+     { owner: true, eager: true, cascade: [Cascade.ALL] })
      attribute: ContactMediumAttribute;
 
-  @OneToOne(()=> Participant, participant => participant.contactMedium )
+  @OneToOne(()=> Participant, participant => participant.contactMedium)
      participantId: Participant;
 
   @Property()

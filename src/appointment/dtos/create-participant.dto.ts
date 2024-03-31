@@ -1,4 +1,4 @@
-import { IsString } from 'class-validator';
+import { IsString, ValidateNested } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { CreateContactMediumDto } from './create-contact-medium.dto';
 
@@ -13,4 +13,10 @@ export class CreateParticipantDto {
 
   @ApiProperty({ type: CreateContactMediumDto })
      contactMedium: CreateContactMediumDto;
+}
+
+export class CreateParticipantsDto {
+  @ApiProperty({ type: [CreateParticipantDto] })
+  @ValidateNested({ each: true })
+     participant: CreateParticipantDto[];
 }
