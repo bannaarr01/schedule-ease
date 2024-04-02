@@ -8,6 +8,8 @@ services:
     ports:
       - "8080:8080"
     command: ["start-dev"]
+    volumes:
+      - keycloak_data:/opt/jboss/keycloak/standalone/data
 
   mariadb:
     image: mariadb:11.3.2
@@ -36,5 +38,6 @@ services:
 #        consistency: cached
 
 volumes:
+  keycloak_data:
   mariadb-data:
     driver: local

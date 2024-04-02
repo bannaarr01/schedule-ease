@@ -4,12 +4,12 @@ import { HttpService } from '@nestjs/axios';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { AuthTokenRequestDto } from './dto/auth-token-request.dto';
 import { IAuthToken } from './interface/auth-token.interface';
+import { ErrorCode } from './enums/error-code';
 
 @Injectable()
 export class KeycloakService {
    private readonly baseURL: string;
    private readonly keycloakRealm: string;
-   private readonly clientID: string;
    private readonly clientSecret: string;
 
    /**
@@ -19,7 +19,6 @@ export class KeycloakService {
    constructor(private httpService: HttpService){
       this.baseURL = process.env.KEYCLOAK_BASE_URL;
       this.keycloakRealm = process.env.KEYCLOAK_REALM;
-      this.clientID = process.env.KEYCLOAK_CLIENT_ID;
       this.clientSecret = process.env.KEYCLOAK_CLIENT_SECRET;
    }
 
@@ -34,13 +33,9 @@ export class KeycloakService {
             baseURL: this.baseURL,
             url: `/realms/${this.keycloakRealm}/protocol/openid-connect/token`,
             method: 'POST',
-            headers: {
-               'Accept': 'application/x-www-form-urlencoded',
-               'Content-Type': 'application/x-www-form-urlencoded'
-            },
             data: qs.stringify({
-               grant_type: 'password',
-               client_id: this.clientID,
+               grant_type: credential.grantType,
+               client_id: credential.clientId,
                client_secret: this.clientSecret,
                username: credential.username,
                password: credential.password
@@ -60,7 +55,7 @@ export class KeycloakService {
     * @param error The error object to be processed.
     */
    private processErrorResponse(error: any): void {
-      if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+      if (error.code === ErrorCode.ECONNABORTED || error.code === ErrorCode.ETIMEDOUT) {
          ErrorUtil.throwError(`Connection timed out: ${error.message}`);
       } else if (error.response?.data?.error_description || error.response?.data?.error) {
          ErrorUtil.throwError(error.response?.data?.error_description

@@ -16,6 +16,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { RescheduleAppointmentDto } from './dtos/reschedule-appointment.dto';
+import { AlertStreamService } from '../alert-stream/alert-stream.service';
 import { CreateParticipantsDto } from './dtos/create-participant.dto';
 import { CreateAppointmentDto } from './dtos/create-appointment.dto';
 import { UploadAttachmentDto } from './dtos/upload-attachment.dto';
@@ -29,6 +30,7 @@ import { LoggerService } from '../logger/logger.service';
 import { AppointmentDto } from './dtos/appointment.dto';
 import { CreateNotesDto } from './dtos/create-note.dto';
 import { MiscUtils } from '../utils/misc.util';
+import { Layout } from '../utils/layout';
 
 @Controller('appointments')
 @ApiTags('Appointments')
@@ -36,6 +38,7 @@ import { MiscUtils } from '../utils/misc.util';
 export class AppointmentController {
    constructor(
     private readonly appointmentService: AppointmentService,
+    private readonly alertStreamService: AlertStreamService,
     private readonly logger: LoggerService
    ) {}
 
@@ -53,6 +56,20 @@ export class AppointmentController {
    ): Promise<any>{
       try {
          const appointment = await this.appointmentService.createAnAppointment(user, createAppointmentDto);
+
+         // Get participants emails
+         const participantEmails = appointment.participant.participants
+            .map(p => p.contactMedium.attribute.email)
+            .filter((email: string) => email);
+
+         // Send email to the participants
+         this.alertStreamService.sendEmail({
+            from: `Schedule Ease <${process.env.MAIL_SYSTEM}>`,
+            to: participantEmails,
+            subject: 'New Appointment',
+            html: Layout.appointmentSchedule(appointment)
+         }).then(() => this.logger.getLogger().log('Email Sent Successfully',AppointmentController.name + ' sendEmail'))
+            .catch(error => console.error(error))
 
          return {
             statusCode: HttpStatus.CREATED,
@@ -168,6 +185,8 @@ export class AppointmentController {
            createParticipantsDto
         );
 
+        //TODO: Notify the participants and cc the existing By email
+
         return {
            status: HttpStatus.OK,
            message: 'OK'
@@ -241,6 +260,8 @@ export class AppointmentController {
         const appointment = await this.appointmentService.getAppointment(appointmentId, user);
         await this.appointmentService.updateAppointment(appointment, user, AppointmentStatusID.CANCELLED);
 
+        //TODO: Notify the participants of this action by email
+
         return {
            status: HttpStatus.OK,
            message: 'OK'
@@ -271,6 +292,8 @@ export class AppointmentController {
            AppointmentStatusID.RESCHEDULED,
            rescheduleDto
         );
+        
+        //TODO: Notify the participants of this action by email
 
         return {
            status: HttpStatus.OK,
@@ -298,6 +321,8 @@ export class AppointmentController {
         const appointment = await this.appointmentService.getAppointment(appointmentId, user);
         await this.appointmentService.removeParticipant(appointment, participantId, user);
 
+        //TODO: Notify the participants by email
+       
         return {
            status: HttpStatus.OK,
            message: 'OK'
