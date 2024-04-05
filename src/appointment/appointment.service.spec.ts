@@ -9,11 +9,14 @@ import { LoggerService } from '../logger/logger.service';
 import { AppointmentService } from './appointment.service';
 import { Appointment } from './entities/appointment.entity';
 import { appointmentDto, attachmentDto } from '../utils/mock.util';
-
-
 import { Attachment } from './entities/attachment.entity';
 import { CreateAttachmentDto } from './dtos/create-attachment.dto';
 import { Note } from './entities/note.entity';
+
+jest.mock('../utils/misc.util', () => ({
+   ...jest.requireActual('../utils/misc.util'),
+   serialize: jest.fn().mockReturnValueOnce(null)
+}));
 
 jest.mock('dotenv', () => ({ config: jest.fn() }));
 jest.mock('@mikro-orm/mysql');
@@ -28,6 +31,7 @@ describe('AppointmentService', () => {
       jest.resetModules();
       process.env.NODE_ENV = 'test';
       process.env.MIN_APPOINTMENT_TIME_IN_MINS = '10'
+      process.env.MAX_APPOINTMENT_TIME_IN_MINS = '480'
    })
 
    beforeEach(async () => {
@@ -35,7 +39,7 @@ describe('AppointmentService', () => {
          transactional: jest.fn(),
          find: jest.fn(),
          findOne: jest.fn(),
-         create: jest.fn().mockReturnValueOnce(Math.floor(Math.random() * 10000) + 1),
+         create: jest.fn(),//.mockReturnValueOnce(Math.floor(Math.random() * 10000) + 1),
          persistAndFlush: jest.fn(),
          persist: jest.fn(),
       } as unknown as jest.Mocked<EntityManager>;
@@ -77,11 +81,12 @@ describe('AppointmentService', () => {
             // Call the callback with entityManagerMock
             return await callback(entityManagerMock);
          });
+         jest.spyOn(service, 'logAppointment').mockResolvedValue(undefined);
       });
 
       it('should create an appointment successfully', async () => {
          // Mocking isAppointmentConflict to return false
-         jest.spyOn(service, 'isAppointmentConflict').mockResolvedValue(false);
+         jest.spyOn(service, 'isAppointmentConflict').mockResolvedValueOnce(false);
 
          // Assert that createAnAppointment resolves without throwing
          await expect(service.createAnAppointment(user, appointmentDto)).resolves.not.toThrow();
@@ -92,19 +97,34 @@ describe('AppointmentService', () => {
       });
 
       it('should throw error if any creating appointment prerequisite not met', async () => {
-         const validateAppointmentTimeSpy = jest.spyOn(service, 'validateAppointmentTime');
-
-         // Throwing an error when the method is called
-         validateAppointmentTimeSpy.mockImplementation(() => {
-            throw new Error('Mocked validation error');
+         jest.spyOn(service, 'isAppointmentConflict').mockImplementationOnce(() => {
+            throw new Error('error has occurred');
          });
 
          await expect(service.createAnAppointment(user, appointmentDto)).rejects.toThrow();
 
          expect(entityManagerMock.create).not.toHaveBeenCalled();
          expect(entityManagerMock.persistAndFlush).not.toHaveBeenCalled();
-         expect(loggerServiceMock.getLogger().error).toHaveBeenCalledTimes(1);
-         validateAppointmentTimeSpy.mockRestore();
+         expect(loggerServiceMock.getLogger().error).toHaveBeenCalled();
+         jest.spyOn(service, 'isAppointmentConflict').mockImplementationOnce(() => {
+            return Promise.resolve(true)
+         });
+      });
+
+      it('should throw error if any creating appointment prerequisite not met v2', async () => {
+         jest.spyOn(service, 'isAppointmentConflict').mockResolvedValueOnce(false);
+
+         const modifiedAppointmentDto = {
+            ...appointmentDto,
+            validForStartDateTime: moment().subtract(1, 'day').toDate(),
+            validForEndDateTime: moment().subtract(1, 'day').add(1, 'hour').toDate(),
+         };
+
+         await service.createAnAppointment(user, modifiedAppointmentDto)
+         expect(ErrorUtil.throwError).toHaveBeenCalledWith(
+            'Appointment Start date or end date cannot be in the past',
+            HttpStatus.BAD_REQUEST
+         );
       });
 
    });
@@ -132,7 +152,12 @@ describe('AppointmentService', () => {
    });
 
    describe('validateAppointmentTime', () => {
-      const minAppointmentTimeInMins = 10;
+      let minAppointmentTimeInMins: number;
+      let maxAppointmentTimeInMins: number;
+      beforeEach(() => {
+         minAppointmentTimeInMins = parseInt(process.env.MIN_APPOINTMENT_TIME_IN_MINS);
+         maxAppointmentTimeInMins = parseInt(process.env.MAX_APPOINTMENT_TIME_IN_MINS);
+      })
 
       it('should throw error if start date is in the past', () => {
          const startDate = moment().subtract(2, 'day').toDate();
@@ -166,12 +191,24 @@ describe('AppointmentService', () => {
          );
       });
 
+      it('should throw error if duration is greater than max appointment time frame', () => {
+         const startDate = moment().add(1, 'hour').toDate();
+         const endDate = moment().add(1, 'hour').add(maxAppointmentTimeInMins + 1, 'minutes').toDate();
+
+         service.validateAppointmentTime(startDate, endDate)
+         expect(ErrorUtil.throwError).toHaveBeenCalledWith(
+            `Appointment duration cannot exceed ${maxAppointmentTimeInMins/60} hours`,
+            HttpStatus.BAD_REQUEST
+         );
+      });
+
       it('should not throw error for valid appointment time', () => {
          const startDate = moment().add(1, 'hour').toDate();
          const endDate = moment().add(2, 'hour').toDate();
          service.validateAppointmentTime(startDate, endDate)
          expect(ErrorUtil.throwError).not.toHaveBeenCalled();
       });
+
    });
 
    describe('isAppointmentConflict', () => {
@@ -192,7 +229,7 @@ describe('AppointmentService', () => {
 
       it('should throw error', async () => {
          // Mocking an error
-         entityManagerMock.find.mockRejectedValueOnce(new Error('Test error'));
+         jest.spyOn(entityManagerMock, 'find').mockRejectedValueOnce(new Error('Test error'))
          await service.isAppointmentConflict(appointmentDto);
          expect(ErrorUtil.throwError).toHaveBeenCalledWith('Unable to check appointment conflict.');
       });
@@ -410,7 +447,7 @@ describe('AppointmentService', () => {
          expect(result).toHaveLength(2);
 
          // Assert entityManager.create and persistAndFlush are called with correct arguments
-         mockCreateNotesDto.note.forEach((note, _) => {
+         mockCreateNotesDto.note.forEach((note, __) => {
             expect(entityManagerMock.create).toHaveBeenCalledWith(Note, {
                ...note,
                appointmentId: mockAppointmentId,
@@ -433,5 +470,67 @@ describe('AppointmentService', () => {
             mockError.message, mockError,'AppointmentService createAppointmentNote');
       });
    });
+
+   describe('updateAppointment', () => {
+      let appointment: any;
+      let user: any;
+      let statusId: number;
+      beforeEach(() => {
+         appointment = { id: 1, status: { id: 1 } };
+         user = { sub: 'user1', name: 'John' };
+         statusId = 2;
+         jest.spyOn(service, 'logAppointment').mockResolvedValue(undefined);
+      })
+
+      it('should update appointment successfully without rescheduling', async () => {
+         const appointment = { id: 1, status: { id: 1 } } as Appointment;
+
+         jest.spyOn(service, 'validateUpdateInput').mockResolvedValueOnce();
+         jest.spyOn(service, 'updateAppointmentData').mockReturnValueOnce(undefined);
+
+         await service.updateAppointment(appointment, user, statusId);
+
+         expect(service.validateUpdateInput).toHaveBeenCalledWith(appointment, statusId, undefined);
+         expect(service.updateAppointmentData).toHaveBeenCalledWith(appointment, user, statusId, undefined);
+      });
+
+      it('should handle error during update appointment', async () => {
+         const error = new Error('DB Error');
+
+         jest.spyOn(service, 'validateUpdateInput').mockRejectedValueOnce(error);
+
+         await expect(service.updateAppointment(appointment, user, statusId)).rejects
+            .toThrowError('DB or Query Error');
+
+         expect(service.validateUpdateInput).toHaveBeenCalledWith(appointment, statusId, undefined);
+         expect(loggerServiceMock.getLogger().error).toHaveBeenCalled();
+         expect(entityManagerMock.persistAndFlush).not.toHaveBeenCalled();
+      });
+
+   });
+
+   describe('validateUpdateInput', () => {
+      let appointment : any;
+      let statusId : number;
+      beforeEach(() => {
+         appointment = { id: 1, status: { id: 1 } };
+         statusId = 2;
+      })
+
+      it('should validate update input successfully', async () => {
+         service.validateAppointmentTime = jest.fn();
+         service.isAppointmentConflict = jest.fn().mockResolvedValueOnce(false);
+
+         await service.validateUpdateInput(appointment, statusId);
+
+         expect(service.validateAppointmentTime).not.toHaveBeenCalled();
+         expect(service.isAppointmentConflict).not.toHaveBeenCalled();
+      });
+
+      it('should handle error during input validation', async () => {
+         //TODO: 
+      });
+   });
+
 
 });

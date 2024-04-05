@@ -387,7 +387,7 @@ export class AppointmentService {
     * @param {RescheduleAppointmentDto} [rescheduleDto] - Optional DTO containing reschedule data.
     * @returns {Appointment} The updated appointment object.
     */
-   private updateAppointmentData(
+   updateAppointmentData(
       appointment: Appointment,
       user: any,
       statusId: AppointmentStatusID,
